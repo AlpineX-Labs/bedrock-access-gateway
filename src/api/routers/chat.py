@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, HTTPException
 from fastapi.responses import StreamingResponse
 
 from api.auth import api_key_auth
@@ -32,14 +32,25 @@ async def chat_completions(
             ),
         ]
 ):
-    if chat_request.model.lower().startswith("gpt-"):
-        chat_request.model = DEFAULT_MODEL
+    try:
+        if chat_request.model.lower().startswith("gpt-"):
+            chat_request.model = DEFAULT_MODEL
 
-    # Exception will be raised if model not supported.
-    model = BedrockModel()
-    model.validate(chat_request)
-    if chat_request.stream:
-        return StreamingResponse(
-            content=model.chat_stream(chat_request), media_type="text/event-stream"
-        )
-    return model.chat(chat_request)
+        model = BedrockModel()
+        model.validate(chat_request)
+        
+        if chat_request.stream:
+            return StreamingResponse(
+                content=model.chat_stream(chat_request), 
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                }
+            )
+        
+        response = model.chat(chat_request)
+        return response
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

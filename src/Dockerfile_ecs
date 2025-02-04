@@ -9,5 +9,7 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 COPY ./api /app/api
 
 ENV PORT=80
+ENV TIMEOUT_KEEP_ALIVE=600
+ENV TIMEOUT=600
 
-CMD ["sh", "-c", "uvicorn api.app:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn api.app:app --workers 2 --host 0.0.0.0 --port ${PORT} --timeout-keep-alive ${TIMEOUT_KEEP_ALIVE}"]
